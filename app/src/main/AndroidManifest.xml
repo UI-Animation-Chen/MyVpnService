@@ -3,6 +3,7 @@
     package="com.czf.myvpnservice">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <application
         android:allowBackup="true"
@@ -14,7 +15,7 @@
 
         <service
             android:name=".MyVpnService"
-            android:permission="android.Permission.BIND_VPN_SERVICE">
+            android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>
                 <action android:name="android.net.VpnService"/>
             </intent-filter>

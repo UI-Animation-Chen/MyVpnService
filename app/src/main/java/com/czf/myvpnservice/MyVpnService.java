@@ -3,6 +3,7 @@ package com.czf.myvpnservice;
 import android.content.Intent;
 import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -18,6 +19,9 @@ public class MyVpnService extends VpnService {
   private Thread mReadThread;
   private Thread mWriteThread;
 
+  private String tunInterfaceIP = "192.168.8.178";
+  private String serverIP = "192.168.8.141";
+
   public MyVpnService() {
 
   }
@@ -27,18 +31,18 @@ public class MyVpnService extends VpnService {
     if (setUpDatagramSocket()) {
       Builder builder = new Builder();
       mVpnFd = builder
-          .addAddress("", 24) //
+          .addAddress(tunInterfaceIP, 24) //
           .addRoute("0.0.0.0", 0) // 转发所有的流量
           .establish();
       startReadThread();
       startWriteThread();
     }
+    Log.d("---------", "service oncreate");
   }
 
   private boolean setUpDatagramSocket() {
     try {
       mSocket = new DatagramSocket();
-      mSocket.connect(InetAddress.getByName("localhost"), 7777); // udp的connect仅仅是指明目的地
       return true;
     } catch (Exception e) {
       e.printStackTrace();
@@ -54,7 +58,9 @@ public class MyVpnService extends VpnService {
         byte[] readBuf = new byte[8192];
         int readLen;
         try {
-          while ((readLen = fis.read(readBuf)) != -1) {
+          mSocket.connect(InetAddress.getByName(serverIP), 7777); // udp的connect仅仅是指明目的地
+          while ((readLen = fis.read(readBuf)) > 0) {
+            Log.d("----------", "read thread: " + readBuf.toString());
             DatagramPacket packet = new DatagramPacket(readBuf, readLen);
             mSocket.send(packet);
           }
@@ -63,6 +69,7 @@ public class MyVpnService extends VpnService {
         }
       }
     });
+    mReadThread.start();
   }
 
   private void startWriteThread() {
@@ -73,25 +80,30 @@ public class MyVpnService extends VpnService {
         byte[] readBuf = new byte[8192];
         DatagramPacket packet = new DatagramPacket(readBuf, 8192);
         try {
+          mSocket.connect(InetAddress.getByName(serverIP), 7777); // udp的connect仅仅是指明目的地
           while (true) {
             mSocket.receive(packet);
             fos.write(readBuf, 0, packet.getLength());
+            Log.d("----------", "write thread: " + readBuf.toString());
           }
         } catch (IOException e) {
           e.printStackTrace();
         }
       }
     });
+    mWriteThread.start();
   }
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
+    Log.d("---------", "service onstart command");
     return super.onStartCommand(intent, flags, startId);
   }
 
   @Override
   public void onDestroy() {
     super.onDestroy();
+    Log.d("---------", "service ondestroy");
   }
 
   @Override

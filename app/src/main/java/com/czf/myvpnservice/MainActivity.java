@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void startVpnService() {
-
+    startService(new Intent(this, MyVpnService.class));
   }
 
   @Override
