@@ -4,13 +4,16 @@ import android.content.Intent;
 import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
 
-import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.Socket;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 public class MyVpnService extends VpnService {
 
-  private Socket mScoket;
+  private DatagramSocket mSocket;
   private ParcelFileDescriptor mVpnFd;
   private Thread mReadThread;
   private Thread mWriteThread;
@@ -21,19 +24,43 @@ public class MyVpnService extends VpnService {
 
   @Override
   public void onCreate() {
-    mScoket = new Socket();
-    Builder builder = new Builder();
-    mVpnFd = builder.establish();
-    startReadThread();
-    startWriteThread();
+    if (setUpDatagramSocket()) {
+      Builder builder = new Builder();
+      mVpnFd = builder
+          .addAddress("", 24) //
+          .addRoute("0.0.0.0", 0) // 转发所有的流量
+          .establish();
+      startReadThread();
+      startWriteThread();
+    }
+  }
+
+  private boolean setUpDatagramSocket() {
+    try {
+      mSocket = new DatagramSocket();
+      mSocket.connect(InetAddress.getByName("localhost"), 7777); // udp的connect仅仅是指明目的地
+      return true;
+    } catch (Exception e) {
+      e.printStackTrace();
+      return false;
+    }
   }
 
   private void startReadThread() {
     mReadThread = new Thread(new Runnable() {
       @Override
       public void run() {
-        FileDescriptor fd = mVpnFd.getFileDescriptor();
-
+        FileInputStream fis = new FileInputStream(mVpnFd.getFileDescriptor());
+        byte[] readBuf = new byte[8192];
+        int readLen;
+        try {
+          while ((readLen = fis.read(readBuf)) != -1) {
+            DatagramPacket packet = new DatagramPacket(readBuf, readLen);
+            mSocket.send(packet);
+          }
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
       }
     });
   }
@@ -42,7 +69,17 @@ public class MyVpnService extends VpnService {
     mWriteThread = new Thread(new Runnable() {
       @Override
       public void run() {
-
+        FileOutputStream fos = new FileOutputStream(mVpnFd.getFileDescriptor());
+        byte[] readBuf = new byte[8192];
+        DatagramPacket packet = new DatagramPacket(readBuf, 8192);
+        try {
+          while (true) {
+            mSocket.receive(packet);
+            fos.write(readBuf, 0, packet.getLength());
+          }
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
       }
     });
   }
