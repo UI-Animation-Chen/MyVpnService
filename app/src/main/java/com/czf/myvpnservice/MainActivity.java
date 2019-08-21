@@ -10,6 +10,7 @@ import android.view.View;
 public class MainActivity extends AppCompatActivity {
 
   private final int START_VPN_REQUEST_CODE = 1;
+  private boolean serviceStarted = false;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -19,12 +20,17 @@ public class MainActivity extends AppCompatActivity {
     findViewById(R.id.start_vpn).setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
-        Intent intent = MyVpnService.prepare(MainActivity.this);
-        if (intent != null) {
-          startActivityForResult(intent, 1);
+        if (serviceStarted) {
+          stopService(new Intent(MainActivity.this, MyVpnService.class));
         } else {
-          startVpnService();
+          Intent intent = MyVpnService.prepare(MainActivity.this);
+          if (intent != null) {
+            startActivityForResult(intent, 1);
+          } else {
+            startVpnService();
+          }
         }
+        serviceStarted = !serviceStarted;
       }
     });
   }
