@@ -20,8 +20,8 @@ public class MyVpnService extends VpnService {
   private Thread mWriteThread;
 
   private String tunInterfaceIP = "192.168.4.234";
-  private String serverIP = "192.168.4.144";
-  private int serverPort = 9999;
+  private String serverIP = "192.168.8.141";
+  private int serverPort = 12346;
 
   public MyVpnService() {
 
@@ -65,11 +65,13 @@ public class MyVpnService extends VpnService {
             int readLen = fis.read(readBuf);
             if (readLen > 0) {
               Log.d("----------", "read thread, len: " + readLen);
+              for (int i = 0; i < readLen; i++) {
+                Log.d("------", "buf[" + i + "]: " + (int)readBuf[i]);
+              }
               DatagramPacket packet = new DatagramPacket(readBuf, readLen);
               mSocket.send(packet);
-              Thread.sleep(300);
             } else {
-              Thread.sleep(500);
+              Thread.sleep(200);
             }
           }
         } catch (Exception e) {
@@ -89,11 +91,9 @@ public class MyVpnService extends VpnService {
         byte[] readBuf = new byte[1500];
         DatagramPacket packet = new DatagramPacket(readBuf, readBuf.length);
         try {
-          mSocket.connect(InetAddress.getByName(serverIP), serverPort); // udp的connect仅仅是指明目的地
-          Log.d("--------", "socket connected");
           while (true) {
             mSocket.receive(packet);
-            fos.write(readBuf, 0, packet.getLength());
+            fos.write(packet.getData(), 0, packet.getLength());
             Log.d("----------", "write thread, len: " + packet.getLength());
           }
         } catch (IOException e) {
