@@ -20,8 +20,8 @@ public class MyVpnService extends VpnService {
   private Thread mWriteThread;
 
   private String tunInterfaceIP = "192.168.4.234";
-//  private String serverIP = "192.168.8.141";
-  private String serverIP = "10.200.0.45";
+  private String serverIP = "192.168.8.141";
+//  private String serverIP = "10.200.0.45";
   private int serverPort = 12346;
 
   public MyVpnService() {
