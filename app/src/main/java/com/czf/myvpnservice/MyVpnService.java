@@ -20,7 +20,8 @@ public class MyVpnService extends VpnService {
   private Thread mWriteThread;
 
   private String tunInterfaceIP = "192.168.4.234";
-  private String serverIP = "192.168.8.141";
+//  private String serverIP = "192.168.8.141";
+  private String serverIP = "10.200.0.45";
   private int serverPort = 12346;
 
   public MyVpnService() {
@@ -62,11 +63,11 @@ public class MyVpnService extends VpnService {
           mSocket.connect(InetAddress.getByName(serverIP), serverPort); // udp的connect仅仅是指明目的地
           Log.d("--------", "socket connected");
           while (true) {
-            int readLen = fis.read(readBuf);
+            int readLen = fis.read(readBuf); // 读到的是一个IP包
             if (readLen > 0) {
               Log.d("----------", "read thread, len: " + readLen);
               for (int i = 0; i < readLen; i++) {
-                Log.d("------", "buf[" + i + "]: " + (int)readBuf[i]);
+                Log.d("------", "buf[" + i + "]: " + (readBuf[i] & 0xff));
               }
               DatagramPacket packet = new DatagramPacket(readBuf, readLen);
               mSocket.send(packet);
@@ -93,8 +94,8 @@ public class MyVpnService extends VpnService {
         try {
           while (true) {
             mSocket.receive(packet);
-            fos.write(packet.getData(), 0, packet.getLength());
-            Log.d("----------", "write thread, len: " + packet.getLength());
+            fos.write(packet.getData(), 0, packet.getLength()); // 写入的应该是一个IP包
+            Log.d("-------", "write thread, len: " + packet.getLength());
           }
         } catch (IOException e) {
           e.printStackTrace();
