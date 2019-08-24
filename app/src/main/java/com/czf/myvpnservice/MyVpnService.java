@@ -63,13 +63,14 @@ public class MyVpnService extends VpnService {
           mSocket.connect(InetAddress.getByName(serverIP), serverPort); // udp的connect仅仅是指明目的地
           Log.d("--------", "socket connected");
           while (true) {
-            int readLen = fis.read(readBuf); // 读到的是一个IP包
+            int readLen = fis.read(readBuf, 4, readBuf.length - 4); // 读到的是一个IP包
             if (readLen > 0) {
               Log.d("----------", "read thread, len: " + readLen);
-              for (int i = 0; i < readLen; i++) {
-                Log.d("------", "buf[" + i + "]: " + (readBuf[i] & 0xff));
+              readBuf[0] = readBuf[1] = readBuf[2] = readBuf[3] = 0;
+              for (int i = 0; i < readLen + 4; i++) {
+                //Log.d("------", "buf[" + i + "]: " + (readBuf[i] & 0xff));
               }
-              DatagramPacket packet = new DatagramPacket(readBuf, readLen);
+              DatagramPacket packet = new DatagramPacket(readBuf, readLen + 4);
               mSocket.send(packet);
             } else {
               Thread.sleep(200);
