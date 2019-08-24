@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +26,9 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <fcntl.h>
+
 #ifdef __linux__
+
 // There are several ways to play with this program. Here we just give an
 // example for the simplest scenario. Let us say that a Linux box has a
 // public IPv4 address on eth0. Please try the following steps and adjust
@@ -53,6 +56,7 @@
 // authentication nor encryption. DO NOT USE IT IN PRODUCTION!
 #include <net/if.h>
 #include <linux/if_tun.h>
+
 static int get_interface(char *name)
 {
     int interface = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
@@ -66,9 +70,13 @@ static int get_interface(char *name)
     }
     return interface;
 }
+
 #else
+
 #error Sorry, you have to implement this part by yourself.
+
 #endif
+
 static int get_tunnel(char *port, char *secret)
 {
     // We use an IPv6 socket to cover both IPv4 and IPv6.
@@ -105,6 +113,7 @@ static int get_tunnel(char *port, char *secret)
     connect(tunnel, (sockaddr *)&addr, addrlen);
     return tunnel;
 }
+
 static void build_parameters(char *parameters, int size, int argc, char **argv)
 {
     // Well, for simplicity, we just concatenate them (almost) blindly.
@@ -134,7 +143,9 @@ static void build_parameters(char *parameters, int size, int argc, char **argv)
     // Control messages always start with zero.
     parameters[0] = 0;
 }
+
 //-----------------------------------------------------------------------------
+
 int main(int argc, char **argv)
 {
     if (argc < 5) {
