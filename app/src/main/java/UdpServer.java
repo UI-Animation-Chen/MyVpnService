@@ -1,8 +1,5 @@
-import com.czf.myvpnservice.IPv4Utils;
-
 import java.net.DatagramSocket;
 import java.net.DatagramPacket;
-import java.net.SocketTimeoutException;
 
 public class UdpServer {
 

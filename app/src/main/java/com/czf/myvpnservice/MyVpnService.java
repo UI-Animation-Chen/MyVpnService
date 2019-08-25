@@ -11,15 +11,18 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 
 public class MyVpnService extends VpnService {
 
-  private DatagramSocket mSocket;
+  private DatagramSocket mTunnel;
   private ParcelFileDescriptor mVpnFd;
   private Thread mReadThread;
   private Thread mWriteThread;
 
-  private String tunInterfaceIP = "192.168.4.234";
+  private boolean tunnelCreated = false;
+
+  private String tunInterfaceIP = "192.168.8.234";
   private String serverIP = "192.168.8.141";
 //  private String serverIP = "10.200.0.45";
   private int serverPort = 12346;
@@ -30,8 +33,8 @@ public class MyVpnService extends VpnService {
 
   @Override
   public void onCreate() {
-    if (setUpDatagramSocket()) {
-      protect(mSocket); // 此socket不走vpn，不然就死循环了。
+    if (createTunnel()) {
+      protect(mTunnel); // 此socket不走vpn，不然就死循环了。
       Builder builder = new Builder();
       mVpnFd = builder
           .addAddress(tunInterfaceIP, 24) //
@@ -43,14 +46,42 @@ public class MyVpnService extends VpnService {
     Log.d("---------", "service oncreate");
   }
 
-  private boolean setUpDatagramSocket() {
+  private boolean createTunnel() {
+    tunnelCreated = false;
+    Thread t = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          mTunnel = new DatagramSocket();
+          mTunnel.connect(InetAddress.getByName(serverIP), serverPort);
+          mTunnel.setSoTimeout(10 * 1000);
+          byte[] buf = new byte[]{0, 0, 0, 0};
+          DatagramPacket p = new DatagramPacket(buf, buf.length);
+          while (true) {
+            mTunnel.send(p);
+            try {
+              mTunnel.receive(p);
+            } catch (SocketTimeoutException e) {
+              e.printStackTrace();
+              continue;
+            }
+            mTunnel.setSoTimeout(0); // 去掉超时设置
+            tunnelCreated = true;
+            Log.d("------", "tunnel created");
+            break;
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    t.start();
     try {
-      mSocket = new DatagramSocket();
-      return true;
-    } catch (Exception e) {
+      t.join();
+    } catch (InterruptedException e) {
       e.printStackTrace();
-      return false;
     }
+    return tunnelCreated;
   }
 
   private void startReadThread() {
@@ -60,18 +91,15 @@ public class MyVpnService extends VpnService {
         FileInputStream fis = new FileInputStream(mVpnFd.getFileDescriptor());
         byte[] readBuf = new byte[1500];
         try {
-          mSocket.connect(InetAddress.getByName(serverIP), serverPort); // udp的connect仅仅是指明目的地
-          Log.d("--------", "socket connected");
           while (true) {
-            int readLen = fis.read(readBuf, 4, readBuf.length - 4); // 读到的是一个IP包
+            int readLen = fis.read(readBuf, 0, readBuf.length); // 读到的是一个IP包
             if (readLen > 0) {
               Log.d("----------", "read thread, len: " + readLen);
-              readBuf[0] = readBuf[1] = readBuf[2] = readBuf[3] = 0;
-              for (int i = 0; i < readLen + 4; i++) {
-                //Log.d("------", "buf[" + i + "]: " + (readBuf[i] & 0xff));
+              for (int i = 0; i < readLen; i++) {
+                Log.d("------", "buf[" + i + "]: " + (readBuf[i] & 0xff));
               }
-              DatagramPacket packet = new DatagramPacket(readBuf, readLen + 4);
-              mSocket.send(packet);
+              DatagramPacket packet = new DatagramPacket(readBuf, readLen);
+              mTunnel.send(packet);
             } else {
               Thread.sleep(200);
             }
@@ -94,7 +122,10 @@ public class MyVpnService extends VpnService {
         DatagramPacket packet = new DatagramPacket(readBuf, readBuf.length);
         try {
           while (true) {
-            mSocket.receive(packet);
+            mTunnel.receive(packet);
+            if (readBuf[0] == 0 && readBuf[1] == 0 && readBuf[2] == 0 && readBuf[3] == 0) {
+              continue; // skip handle shake packets
+            }
             fos.write(packet.getData(), 0, packet.getLength()); // 写入的应该是一个IP包
             Log.d("-------", "write thread, len: " + packet.getLength());
           }

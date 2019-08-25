@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
             startVpnService();
           }
         }
-        serviceStarted = !serviceStarted;
+//        serviceStarted = !serviceStarted;
       }
     });
   }
