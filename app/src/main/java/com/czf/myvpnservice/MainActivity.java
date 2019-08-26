@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
+import toyvpndemo.ToyVpnClient;
+
 public class MainActivity extends AppCompatActivity {
 
   private final int START_VPN_REQUEST_CODE = 1;
@@ -31,6 +33,14 @@ public class MainActivity extends AppCompatActivity {
           }
         }
 //        serviceStarted = !serviceStarted;
+      }
+    });
+
+    findViewById(R.id.start_toy_vpn).setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        Intent i = new Intent(MainActivity.this, ToyVpnClient.class);
+        startActivity(i);
       }
     });
   }
