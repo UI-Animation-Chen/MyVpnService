@@ -15,6 +15,9 @@ import java.net.SocketTimeoutException;
 
 public class MyVpnService extends VpnService {
 
+  public static final String CONNECT_ACTION = "connectMyVpn";
+  public static final String DISCONNECT_ACTION = "disconnectMyVpn";
+
   private DatagramSocket mTunnel;
   private ParcelFileDescriptor mVpnFd;
   private Thread mReadThread;
@@ -33,17 +36,32 @@ public class MyVpnService extends VpnService {
 
   @Override
   public void onCreate() {
+    Log.d("---------", "service oncreate");
+  }
+
+  @Override
+  public int onStartCommand(Intent intent, int flags, int startId) {
+    Log.d("---------", "service onstart command");
+    if (intent != null && DISCONNECT_ACTION.equals(intent.getAction())) {
+      stopForeground(true);
+      return START_NOT_STICKY;
+    } else {
+      startTunnel();
+      return START_STICKY;
+    }
+  }
+
+  private void startTunnel() {
     if (createTunnel()) {
       protect(mTunnel); // 此socket不走vpn，不然就死循环了。
       Builder builder = new Builder();
       mVpnFd = builder
-          .addAddress(tunInterfaceIP, 24) //
-          .addRoute("0.0.0.0", 0) // 转发所有的流量
-          .establish();
+        .addAddress(tunInterfaceIP, 24) //
+        .addRoute("0.0.0.0", 0) // 转发所有的流量
+        .establish();
       startReadThread();
       startWriteThread();
     }
-    Log.d("---------", "service oncreate");
   }
 
   private boolean createTunnel() {
@@ -139,12 +157,6 @@ public class MyVpnService extends VpnService {
   }
 
   @Override
-  public int onStartCommand(Intent intent, int flags, int startId) {
-    Log.d("---------", "service onstart command");
-    return super.onStartCommand(intent, flags, startId);
-  }
-
-  @Override
   public void onDestroy() {
     super.onDestroy();
     Log.d("---------", "service ondestroy");
@@ -153,6 +165,7 @@ public class MyVpnService extends VpnService {
   @Override
   public void onRevoke() {
     super.onRevoke();
+    Log.d("---------", "service onrevokd");
     if (mVpnFd != null) {
       try {
         mVpnFd.close();

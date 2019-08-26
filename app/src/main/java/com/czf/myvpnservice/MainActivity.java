@@ -23,7 +23,9 @@ public class MainActivity extends AppCompatActivity {
       @Override
       public void onClick(View v) {
         if (serviceStarted) {
-          stopService(new Intent(MainActivity.this, MyVpnService.class));
+          Intent i = new Intent(MainActivity.this, MyVpnService.class);
+          i.setAction(MyVpnService.DISCONNECT_ACTION);
+          startService(i);
         } else {
           Intent intent = MyVpnService.prepare(MainActivity.this);
           if (intent != null) {
@@ -32,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
             startVpnService();
           }
         }
-//        serviceStarted = !serviceStarted;
+        serviceStarted = !serviceStarted;
       }
     });
 
@@ -46,7 +48,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void startVpnService() {
-    startService(new Intent(this, MyVpnService.class));
+    Intent i = new Intent(this, MyVpnService.class);
+    i.setAction(MyVpnService.CONNECT_ACTION);
+    startService(i);
   }
 
   @Override

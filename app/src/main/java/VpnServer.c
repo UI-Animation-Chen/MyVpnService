@@ -173,10 +173,10 @@ int main(int argc, char *argv[]) {
 	  exit(-1);
 	}
 
-  send_udp_data(raw_sockfd);
+  //send_udp_data(raw_sockfd);
   //recv_from_raw(raw_sockfd);
 
-	/*int udp_sockfd;
+	int udp_sockfd;
 	while ((udp_sockfd = get_tunnel()) != -1) { // connected a client
 	  D_LOG("here comes a new tunnel\n");
     char buf[1500];
@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
       }
       D_LOG("udp sendto success, len: %d\n", sendlen);
     }
-	}*/
+	}
 	return 0;
 }
 
